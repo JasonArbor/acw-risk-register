@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ACW Group — Risk Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --surface2: #f1efe9;
+    --border: #e2e0d8;
+    --border2: #cbc9c0;
+    --text: #1a1917;
+    --muted: #6b6960;
+    --hint: #9c9a92;
+    --green-bg: #eaf3de; --green-text: #2d5a0e; --green-border: #b0d47a;
+    --amber-bg: #faeeda; --amber-text: #7a4a08; --amber-border: #f0b84a;
+    --red-bg: #fcebeb; --red-text: #8a1f1f; --red-border: #f0a0a0;
+    --blue-bg: #e6f1fb; --blue-text: #0e4a8a; --blue-border: #90c0f0;
+    --purple-bg: #eeedfe; --purple-text: #3a30a0; --purple-border: #b0acf0;
+    --teal-bg: #e1f5ee; --teal-text: #0a5040; --teal-border: #6acaaa;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 8px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,0.10);
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+
+  /* ── SETUP SCREEN ── */
+  #setup-screen { display: none; min-height: 100vh; align-items: center; justify-content: center; padding: 2rem; }
+  #setup-screen.visible { display: flex; }
+  .setup-card { background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg); padding: 2.5rem; width: min(520px, 100%); }
+  .setup-card h1 { font-size: 22px; font-weight: 600; margin-bottom: 0.4rem; }
+  .setup-card p { color: var(--muted); font-size: 14px; margin-bottom: 1.5rem; line-height: 1.6; }
+  .setup-card .step { background: var(--surface2); border-radius: var(--radius); padding: 1rem 1.25rem; margin-bottom: 1rem; font-size: 13px; color: var(--muted); }
+  .setup-card .step strong { color: var(--text); display: block; margin-bottom: 0.3rem; font-weight: 500; }
+  .setup-card .step code { font-family: 'DM Mono', monospace; font-size: 12px; background: var(--border); padding: 2px 6px; border-radius: 4px; color: var(--text); }
+  .setup-card textarea { width: 100%; height: 180px; padding: 10px 12px; font-family: 'DM Mono', monospace; font-size: 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); resize: vertical; margin: 0.75rem 0; }
+  .setup-card textarea:focus { outline: none; border-color: #6b7280; }
+  .setup-err { font-size: 12px; color: var(--red-text); margin-bottom: 0.75rem; }
+
+  /* ── LAYOUT ── */
+  #app { display: none; max-width: 1160px; margin: 0 auto; padding: 2rem 1.5rem; }
+  #app.visible { display: block; }
+
+  /* ── HEADER ── */
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; }
+  .page-header-left h1 { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
+  .page-header-left h1 span { color: var(--hint); font-weight: 400; }
+  .page-header-left p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green-border); display: inline-block; margin-right: 5px; }
+  .sync-dot.syncing { background: var(--amber-border); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
+
+  /* ── BUTTONS ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; font-size: 13px; font-weight: 500; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); cursor: pointer; transition: background 0.15s, box-shadow 0.15s; white-space: nowrap; }
+  .btn:hover { background: var(--surface2); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .btn-primary:hover { background: #333; }
+  .btn-danger { background: var(--red-bg); color: var(--red-text); border-color: var(--red-border); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  select { font-family: 'DM Sans', sans-serif; font-size: 13px; padding: 7px 12px; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); cursor: pointer; height: 36px; }
+  select:focus { outline: none; border-color: #6b7280; }
+
+  /* ── STATS ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 1.75rem; }
+  .stat { background: var(--surface); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .stat-val { font-size: 28px; font-weight: 600; letter-spacing: -1px; }
+  .stat-val.red { color: #b91c1c; }
+  .stat-val.amber { color: #92400e; }
+  .stat-val.green { color: #166534; }
+
+  /* ── MATRIX ── */
+  .matrix-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.5rem; margin-bottom: 1.75rem; }
+  .matrix-card h2 { font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 1rem; }
+  .matrix-legend { display: flex; gap: 16px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .matrix-grid { display: grid; grid-template-columns: 90px repeat(3, 1fr); gap: 6px; }
+  .mg-header { font-size: 11px; font-weight: 600; color: var(--muted); display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .mg-side { font-size: 11px; font-weight: 600; color: var(--muted); display: flex; align-items: center; justify-content: flex-end; padding-right: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .mg-cell { min-height: 64px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px; padding: 8px; }
+  .mg-cell.g { background: var(--green-bg); }
+  .mg-cell.a { background: var(--amber-bg); }
+  .mg-cell.r { background: var(--red-bg); }
+  .risk-dot { width: 10px; height: 10px; border-radius: 50%; cursor: pointer; transition: transform 0.15s; flex-shrink: 0; }
+  .risk-dot:hover { transform: scale(1.4); }
+  .cell-count { font-size: 11px; font-weight: 600; color: var(--muted); width: 100%; text-align: center; margin-top: 2px; }
+
+  /* ── TABLE ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .table-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 740px; }
+  thead th { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+  tbody tr { transition: background 0.1s; }
+  .risk-title { font-weight: 500; font-size: 13px; margin-bottom: 3px; }
+  .risk-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+  .mitigation-text { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+  .b-red { background: var(--red-bg); color: var(--red-text); }
+  .b-amber { background: var(--amber-bg); color: var(--amber-text); }
+  .b-green { background: var(--green-bg); color: var(--green-text); }
+  .b-blue { background: var(--blue-bg); color: var(--blue-text); }
+  .b-purple { background: var(--purple-bg); color: var(--purple-text); }
+  .b-teal { background: var(--teal-bg); color: var(--teal-text); }
+  .b-gray { background: var(--surface2); color: var(--muted); }
+
+  /* ── EDIT MODE BAR ── */
+  .edit-bar { display: none; align-items: center; gap: 10px; padding: 10px 16px; background: var(--green-bg); border: 1px solid var(--green-border); border-radius: var(--radius); margin-bottom: 1rem; font-size: 13px; color: var(--green-text); flex-wrap: wrap; }
+  .edit-bar.visible { display: flex; }
+  .pin-bar { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem; flex-wrap: wrap; }
+  .pin-bar label { font-size: 13px; color: var(--muted); }
+  .pin-bar input { padding: 6px 10px; font-size: 13px; font-family: 'DM Mono', monospace; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); width: 130px; }
+  .pin-bar input:focus { outline: none; border-color: #6b7280; }
+  .pin-err { font-size: 12px; color: var(--red-text); }
+
+  /* ── SLIDE PANEL ── */
+  .slide-panel { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+  .slide-panel.open { max-height: 900px; }
+  .form-card { background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: var(--shadow); }
+  .form-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .field input, .field select, .field textarea { width: 100%; padding: 8px 11px; font-size: 13px; font-family: 'DM Sans', sans-serif; border: 1px solid var(--border2); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: #6b7280; }
+  .field textarea { height: 68px; resize: vertical; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-btns { display: flex; gap: 8px; margin-top: 1rem; }
+  .del-actions { display: flex; gap: 6px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .del-confirm { font-size: 12px; color: var(--red-text); display: flex; align-items: center; gap: 6px; }
+
+  /* ── TOOLTIP ── */
+  .tooltip { position: relative; display: inline-flex; }
+  .tooltip:hover .tip { opacity: 1; pointer-events: none; }
+  .tip { position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); font-size: 11px; padding: 4px 8px; border-radius: 4px; white-space: nowrap; opacity: 0; transition: opacity 0.15s; z-index: 10; }
+  .tip::after { content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:4px solid transparent; border-top-color:var(--text); }
+
+  /* ── EMPTY ── */
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-size: 14px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    #app { padding: 1rem; }
+    .page-header { flex-direction: column; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>ACW Risk Register</h1>
+    <p>This app uses Firebase to sync in real time between Rod, Jason, and Cody. You only need to set this up once. Paste your Firebase config below to get started.</p>
+
+    <div class="step">
+      <strong>Step 1 — Create a Firebase project</strong>
+      Go to <a href="https://console.firebase.google.com" target="_blank" style="color:var(--blue-text)">console.firebase.google.com</a> → Add project → name it <code>acw-risk-register</code> → disable Google Analytics → Create.
+    </div>
+    <div class="step">
+      <strong>Step 2 — Add a web app</strong>
+      In your project → Project settings (gear icon) → "Your apps" → Web (&lt;/&gt;) → name it <code>risk-register</code> → Register app. Copy the <code>firebaseConfig</code> object.
+    </div>
+    <div class="step">
+      <strong>Step 3 — Enable Realtime Database</strong>
+      Left sidebar → Build → Realtime Database → Create database → Start in <strong>test mode</strong> → Enable.
+    </div>
+    <div class="step">
+      <strong>Step 4 — Paste config here</strong>
+      Paste the entire <code>firebaseConfig = { ... }</code> block below (curly braces and all).
+    </div>
+
+    <textarea id="setup-config" placeholder='{
+  "apiKey": "AIza...",
+  "authDomain": "your-project.firebaseapp.com",
+  "databaseURL": "https://your-project-default-rtdb.firebaseio.com",
+  "projectId": "your-project",
+  "storageBucket": "your-project.appspot.com",
+  "messagingSenderId": "123456789",
+  "appId": "1:123456789:web:abc123"
+}'></textarea>
+    <div class="setup-err" id="setup-err"></div>
+    <button class="btn btn-primary" onclick="saveConfig()" style="width:100%;justify-content:center;padding:10px">Connect & Launch →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>ACW Group <span>/ Risk Register</span></h1>
+      <p id="sync-status"><span class="sync-dot syncing" id="sync-dot"></span> Connecting…</p>
+    </div>
+    <div class="header-actions">
+      <select id="cat-filter" onchange="renderTable()">
+        <option value="all">All categories</option>
+        <option value="Commercial">Commercial</option>
+        <option value="Governance">Governance</option>
+        <option value="People">People</option>
+        <option value="Operational">Operational</option>
+        <option value="Strategic">Strategic</option>
+      </select>
+      <select id="status-filter" onchange="renderTable()">
+        <option value="all">All statuses</option>
+        <option value="Open">Open</option>
+        <option value="Mitigating">Mitigating</option>
+        <option value="Closed">Closed</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="matrix-card">
+    <h2>Risk matrix</h2>
+    <div class="matrix-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e24b4a"></div> Open</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef9f27"></div> Mitigating</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#639922"></div> Closed</div>
+    </div>
+    <div class="matrix-grid">
+      <div></div>
+      <div class="mg-header">Low impact</div>
+      <div class="mg-header">Med impact</div>
+      <div class="mg-header">High impact</div>
+
+      <div class="mg-side">High L</div>
+      <div class="mg-cell g" id="c-HL-LI"></div>
+      <div class="mg-cell a" id="c-HL-MI"></div>
+      <div class="mg-cell r" id="c-HL-HI"></div>
+
+      <div class="mg-side">Med L</div>
+      <div class="mg-cell g" id="c-ML-LI"></div>
+      <div class="mg-cell a" id="c-ML-MI"></div>
+      <div class="mg-cell a" id="c-ML-HI"></div>
+
+      <div class="mg-side">Low L</div>
+      <div class="mg-cell g" id="c-LL-LI"></div>
+      <div class="mg-cell g" id="c-LL-MI"></div>
+      <div class="mg-cell a" id="c-LL-HI"></div>
+    </div>
+  </div>
+
+  <div class="pin-bar" id="pin-bar">
+    <label>Edit mode:</label>
+    <input type="password" id="pin-input" placeholder="Enter PIN" onkeydown="if(event.key==='Enter')checkPin()" />
+    <button class="btn" onclick="checkPin()">Unlock</button>
+    <span class="pin-err" id="pin-err"></span>
+  </div>
+
+  <div class="edit-bar" id="edit-bar">
+    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 11V7a1 1 0 0 1 2 0v4h4a1 1 0 0 1 0 2h-4v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4z"/><circle cx="12" cy="12" r="9"/></svg>
+    Edit mode active — changes sync live to all users.
+    <button class="btn btn-sm" style="margin-left:auto" onclick="lockMode()">Lock</button>
+    <button class="btn btn-primary btn-sm" onclick="showForm()">+ Add risk</button>
+  </div>
+
+  <div class="slide-panel" id="form-panel">
+    <div id="form-content"></div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:26%">Risk</th>
+            <th style="width:11%">Category</th>
+            <th style="width:8%">L'hood</th>
+            <th style="width:8%">Impact</th>
+            <th style="width:13%">Owner</th>
+            <th style="width:9%">Status</th>
+            <th>Mitigation</th>
+          </tr>
+        </thead>
+        <tbody id="risk-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<script>
+const PIN = "2025";
+const STORAGE_KEY = "acw_rr_firebase_config";
+
+const DEFAULT_RISKS = [
+  {id:1,title:"ARS/Woodchuck distribution — supplier-favoured terms",desc:"No market exclusivity, no margin protection, no termination compensation. ARS can sell direct or bypass Woodchuck.",category:"Commercial",likelihood:"H",impact:"H",owner:"Rod Gooden",status:"Mitigating",mitigation:"Woodchuck sale agreed. All activity oriented toward sale prep. ARS agreement to be reviewed as part of sale process."},
+  {id:2,title:"Woodchuck sale — no timeline or valuation",desc:"Decision to sell confirmed but no target date, valuation, or process owner assigned.",category:"Commercial",likelihood:"M",impact:"M",owner:"Jason Gooden",status:"Open",mitigation:""},
+  {id:3,title:"Hardwood stakes supply uncertainty",desc:"Supply shortfall heading into peak season. No confirmed pivot plan for sales team.",category:"Commercial",likelihood:"H",impact:"H",owner:"Rod Gooden",status:"Open",mitigation:""},
+  {id:4,title:"Revenue tracking at ~74% of target",desc:"YTD gap of ~26% against $22.7M target. No formal reset or revised plan confirmed.",category:"Commercial",likelihood:"H",impact:"H",owner:"Jason Gooden",status:"Open",mitigation:""},
+  {id:5,title:"No formal shareholders agreement",desc:"No documented agreement governing share transfers, decision rights, dividends, or dispute resolution.",category:"Governance",likelihood:"M",impact:"H",owner:"Rod Gooden",status:"Open",mitigation:"ACW-GOV-001 governance framework drafted. Sections 2–6 pending shareholder agreement."},
+  {id:6,title:"Working shareholder imbalance",desc:"Jason carrying operational weight. Equity split does not reflect contribution. No dividend or compensation mechanism.",category:"Governance",likelihood:"M",impact:"H",owner:"Rod Gooden",status:"Open",mitigation:""},
+  {id:7,title:"Authority matrix not completed",desc:"Rod still signing routine invoices. No documented decision thresholds across roles.",category:"Governance",likelihood:"H",impact:"M",owner:"Rod Gooden",status:"Open",mitigation:"POL-003 Shareholder Decision Authority drafted as interim measure."},
+  {id:8,title:"Rod not performing agreed GM role",desc:"Role agreed with Malcolm Peake. Recurring pattern of acknowledgement without action.",category:"People",likelihood:"H",impact:"H",owner:"Jason Gooden",status:"Open",mitigation:""},
+  {id:9,title:"VIC TM — new hire transition risk",desc:"Peter Camilleri recently hired. Revenue risk during onboarding period.",category:"People",likelihood:"M",impact:"M",owner:"Jason Gooden",status:"Mitigating",mitigation:"Jason transitioning out of interim VIC TM role. Peter being onboarded."},
+  {id:10,title:"Key person dependency — Jason",desc:"Jason carrying Head of Sales, VIC TM, and de facto GM functions simultaneously.",category:"People",likelihood:"H",impact:"H",owner:"Rod Gooden",status:"Open",mitigation:""},
+  {id:11,title:"VIC warehouse lease expiring March 2027",desc:"No decision made on renewal, relocation, or consolidation. SKU rationalisation data required first.",category:"Operational",likelihood:"M",impact:"M",owner:"Leon De Kauwe",status:"Open",mitigation:"Strategy session flagged as a Q2 Rock with Leon as owner."},
+  {id:12,title:"CST offshore capability",desc:"Process ownership unclear. Training incomplete. Quality inconsistent.",category:"Operational",likelihood:"M",impact:"M",owner:"Karen Miles",status:"Mitigating",mitigation:"Karen transitioning to Strategic Sales Support. Offshore process lead to be identified."},
+  {id:13,title:"SKU complexity",desc:"Excessive range creating operational drag on CS, warehousing, and procurement.",category:"Operational",likelihood:"H",impact:"M",owner:"Leon De Kauwe",status:"Mitigating",mitigation:"SKU rationalisation project underway. Leon leading with Phocas data."},
+  {id:14,title:"Flex MSE pipeline — long lead time",desc:"Rod's engineer outreach results unclear. Pipeline building slowly against a $750K–$1M target.",category:"Strategic",likelihood:"M",impact:"H",owner:"Rod Gooden",status:"Open",mitigation:"Rod committed to 5 engineer/architect conversations per week."},
+  {id:15,title:"30-30-30 trajectory behind budget",desc:"Business tracking ~74% YTD. No formal plan reset or revised 2026 target agreed.",category:"Strategic",likelihood:"H",impact:"H",owner:"Jason Gooden",status:"Open",mitigation:""},
+  {id:16,title:"Trade/retail exit — Rod exception risk",desc:"Policy POL-001 agreed but Rod's history of making exceptions is the primary implementation risk.",category:"Strategic",likelihood:"H",impact:"M",owner:"Jason Gooden",status:"Mitigating",mitigation:"POL-001 drafted and circulated. Signature block to be added. Rod verbally committed."},
+];
+
+let risks = {};
+let editMode = false;
+let pendingDelete = null;
+let editingId = null;
+let db = null;
+let nextIdRef = null;
+let risksRef = null;
+
+// ── CONFIG ──
+function saveConfig() {
+  let raw = document.getElementById('setup-config').value;
+  // Remove all actual newlines and collapse whitespace
+  raw = raw.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
+  // Strip "const firebaseConfig = " or "firebaseConfig = " prefix and trailing semicolon
+  raw = raw.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
+  // Quote unquoted JS keys: word chars followed by colon
+  raw = raw.replace(/([{,]\s*)([a-zA-Z_]\w*)(\s*:)/g, '$1"$2"$3');
+  // Replace single quotes with double quotes
+  raw = raw.replace(/'/g, '"');
+  // Remove trailing commas before closing brace
+  raw = raw.replace(/,\s*}/g, '}');
+  try {
+    const cfg = JSON.parse(raw);
+    if (!cfg.apiKey) throw new Error("Missing apiKey — make sure you pasted the full config block");
+    if (!cfg.databaseURL) throw new Error("Missing databaseURL — check that Realtime Database is enabled in Firebase");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+    document.getElementById('setup-err').textContent = '';
+    initFirebase(cfg);
+  } catch(e) {
+    document.getElementById('setup-err').textContent = 'Could not parse config: ' + e.message;
+  }
+}
+
+function loadStoredConfig() {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const cfg = JSON.parse(stored);
+      initFirebase(cfg);
+      return true;
+    } catch(e) {}
+  }
+  return false;
+}
+
+// ── FIREBASE ──
+function initFirebase(cfg) {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    db = firebase.database();
+    risksRef = db.ref('risks');
+    nextIdRef = db.ref('nextId');
+
+    document.getElementById('setup-screen').classList.remove('visible');
+    document.getElementById('app').classList.add('visible');
+
+    risksRef.on('value', snap => {
+      const val = snap.val();
+      if (!val) {
+        // Seed defaults
+        const seed = {};
+        DEFAULT_RISKS.forEach(r => { seed[r.id] = r; });
+        risksRef.set(seed);
+        nextIdRef.set(DEFAULT_RISKS.length + 1);
+      } else {
+        risks = val;
+        render();
+        setSynced();
+      }
+    });
+
+    nextIdRef.on('value', snap => {
+      if (snap.val() !== null) window._nextId = snap.val();
+    });
+
+    setSynced();
+  } catch(e) {
+    document.getElementById('setup-err').textContent = 'Firebase init failed: ' + e.message;
+    document.getElementById('setup-screen').classList.add('visible');
+  }
+}
+
+function setSynced() {
+  document.getElementById('sync-status').innerHTML = '<span class="sync-dot" id="sync-dot"></span> Live — synced';
+}
+
+// ── RENDER ──
+function render() {
+  renderStats();
+  renderMatrix();
+  renderTable();
+}
+
+function riskList() {
+  return Object.values(risks || {});
+}
+
+function renderStats() {
+  const all = riskList();
+  const open = all.filter(r => r.status === 'Open').length;
+  const mit = all.filter(r => r.status === 'Mitigating').length;
+  const closed = all.filter(r => r.status === 'Closed').length;
+  const hh = all.filter(r => r.likelihood === 'H' && r.impact === 'H').length;
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-label">Total risks</div><div class="stat-val">${all.length}</div></div>
+    <div class="stat"><div class="stat-label">Open</div><div class="stat-val red">${open}</div></div>
+    <div class="stat"><div class="stat-label">Mitigating</div><div class="stat-val amber">${mit}</div></div>
+    <div class="stat"><div class="stat-label">Closed</div><div class="stat-val green">${closed}</div></div>
+    <div class="stat"><div class="stat-label">High / High</div><div class="stat-val red">${hh}</div></div>`;
+}
+
+function renderMatrix() {
+  const cells = {};
+  ['HL','ML','LL'].forEach(l => ['LI','MI','HI'].forEach(i => cells[`${l}-${i}`] = []));
+  riskList().forEach(r => {
+    const k = `${r.likelihood}L-${r.impact}I`;
+    if (cells[k]) cells[k].push(r);
+  });
+  Object.entries(cells).forEach(([k, list]) => {
+    const el = document.getElementById('c-' + k);
+    if (!el) return;
+    el.innerHTML = list.map(r => {
+      const col = r.status === 'Open' ? '#e24b4a' : r.status === 'Closed' ? '#639922' : '#ef9f27';
+      return `<div class="tooltip"><div class="risk-dot" style="background:${col}" onclick="scrollToRisk(${r.id})"></div><div class="tip">${r.title}</div></div>`;
+    }).join('') + (list.length > 1 ? `<div class="cell-count">${list.length}</div>` : '');
+  });
+}
+
+function scrollToRisk(id) {
+  const row = document.getElementById('row-' + id);
+  if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+const catColors = {Commercial:'b-blue',Governance:'b-purple',People:'b-teal',Operational:'b-gray',Strategic:'b-amber'};
+const stColors = {Open:'b-red',Mitigating:'b-amber',Closed:'b-green'};
+const lColors = {H:'b-red',M:'b-amber',L:'b-green'};
+const lLabels = {H:'High',M:'Med',L:'Low'};
+
+function renderTable() {
+  const cat = document.getElementById('cat-filter').value;
+  const st = document.getElementById('status-filter').value;
+  const filtered = riskList().filter(r => (cat === 'all' || r.category === cat) && (st === 'all' || r.status === st));
+  filtered.sort((a, b) => {
+    const score = r => (r.likelihood === 'H' ? 2 : r.likelihood === 'M' ? 1 : 0) + (r.impact === 'H' ? 2 : r.impact === 'M' ? 1 : 0);
+    return score(b) - score(a);
+  });
+
+  if (!filtered.length) {
+    document.getElementById('risk-body').innerHTML = '<tr><td colspan="7"><div class="empty">No risks match the current filter.</div></td></tr>';
+    return;
+  }
+
+  document.getElementById('risk-body').innerHTML = filtered.map(r => `
+    <tr id="row-${r.id}">
+      <td><div class="risk-title">${r.title}</div><div class="risk-desc">${r.desc}</div></td>
+      <td><span class="badge ${catColors[r.category] || 'b-gray'}">${r.category}</span></td>
+      <td><span class="badge ${lColors[r.likelihood] || 'b-gray'}">${lLabels[r.likelihood] || r.likelihood}</span></td>
+      <td><span class="badge ${lColors[r.impact] || 'b-gray'}">${lLabels[r.impact] || r.impact}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${r.owner}</td>
+      <td><span class="badge ${stColors[r.status] || 'b-gray'}">${r.status}</span></td>
+      <td>
+        <div class="mitigation-text">${r.mitigation || '—'}</div>
+        ${editMode ? `<div class="del-actions">
+          <button class="btn btn-sm" onclick="showForm(${r.id})">Edit</button>
+          ${pendingDelete === r.id
+            ? `<span class="del-confirm">Delete? <button class="btn btn-sm btn-danger" onclick="confirmDelete(${r.id})">Yes</button> <button class="btn btn-sm" onclick="cancelDelete()">No</button></span>`
+            : `<button class="btn btn-sm" style="color:var(--red-text)" onclick="askDelete(${r.id})">Delete</button>`
+          }
+        </div>` : ''}
+      </td>
+    </tr>`).join('');
+}
+
+// ── EDIT MODE ──
+function checkPin() {
+  if (document.getElementById('pin-input').value === PIN) {
+    editMode = true;
+    document.getElementById('pin-bar').style.display = 'none';
+    document.getElementById('edit-bar').classList.add('visible');
+    document.getElementById('pin-err').textContent = '';
+    renderTable();
+  } else {
+    document.getElementById('pin-err').textContent = 'Incorrect PIN';
+    document.getElementById('pin-input').value = '';
+  }
+}
+
+function lockMode() {
+  editMode = false;
+  pendingDelete = null;
+  editingId = null;
+  document.getElementById('pin-bar').style.display = '';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('edit-bar').classList.remove('visible');
+  closeForm();
+  renderTable();
+}
+
+// ── FORM ──
+function showForm(id) {
+  editingId = id || null;
+  const r = id ? risks[id] : {id:null,title:'',desc:'',category:'Commercial',likelihood:'M',impact:'M',owner:'',status:'Open',mitigation:''};
+  if (!r) return;
+  const cats = ['Commercial','Governance','People','Operational','Strategic'];
+  const stas = ['Open','Mitigating','Closed'];
+  const ls = [['H','High'],['M','Med'],['L','Low']];
+  document.getElementById('form-content').innerHTML = `
+    <div class="form-card">
+      <h3>${id ? 'Edit risk' : 'Add risk'}</h3>
+      <div class="field"><label>Title</label><input id="f-title" value="${(r.title||'').replace(/"/g,'&quot;')}"/></div>
+      <div class="field"><label>Description</label><textarea id="f-desc">${r.desc||''}</textarea></div>
+      <div class="form-grid">
+        <div class="field"><label>Category</label><select id="f-cat">${cats.map(c=>`<option${c===r.category?' selected':''}>${c}</option>`).join('')}</select></div>
+        <div class="field"><label>Status</label><select id="f-status">${stas.map(s=>`<option${s===r.status?' selected':''}>${s}</option>`).join('')}</select></div>
+        <div class="field"><label>Likelihood</label><select id="f-l">${ls.map(([v,l])=>`<option value="${v}"${v===r.likelihood?' selected':''}>${l}</option>`).join('')}</select></div>
+        <div class="field"><label>Impact</label><select id="f-i">${ls.map(([v,l])=>`<option value="${v}"${v===r.impact?' selected':''}>${l}</option>`).join('')}</select></div>
+      </div>
+      <div class="field"><label>Owner</label><input id="f-owner" value="${(r.owner||'').replace(/"/g,'&quot;')}"/></div>
+      <div class="field"><label>Mitigation notes</label><textarea id="f-mit">${r.mitigation||''}</textarea></div>
+      <div class="form-btns">
+        <button class="btn" onclick="closeForm()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveRisk()">${id ? 'Save changes' : 'Add risk'}</button>
+      </div>
+    </div>`;
+  document.getElementById('form-panel').classList.add('open');
+  document.getElementById('form-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeForm() {
+  document.getElementById('form-panel').classList.remove('open');
+  editingId = null;
+}
+
+function saveRisk() {
+  const newId = editingId || (window._nextId || 17);
+  const r = {
+    id: newId,
+    title: document.getElementById('f-title').value,
+    desc: document.getElementById('f-desc').value,
+    category: document.getElementById('f-cat').value,
+    status: document.getElementById('f-status').value,
+    likelihood: document.getElementById('f-l').value,
+    impact: document.getElementById('f-i').value,
+    owner: document.getElementById('f-owner').value,
+    mitigation: document.getElementById('f-mit').value,
+  };
+  db.ref('risks/' + newId).set(r);
+  if (!editingId) db.ref('nextId').set(newId + 1);
+  editingId = null;
+  closeForm();
+}
+
+function askDelete(id) { pendingDelete = id; renderTable(); }
+function cancelDelete() { pendingDelete = null; renderTable(); }
+function confirmDelete(id) {
+  db.ref('risks/' + id).remove();
+  pendingDelete = null;
+}
+
+// ── INIT ──
+const HARDCODED_CONFIG = {
+  apiKey: "AIzaSyDzSvAeqyic41CYS3N8L0VgVsbQ9lCwMyo",
+  authDomain: "acw-risk-register.firebaseapp.com",
+  databaseURL: "https://acw-risk-register-default-rtdb.firebaseio.com",
+  projectId: "acw-risk-register",
+  storageBucket: "acw-risk-register.firebasestorage.app",
+  messagingSenderId: "921833394634",
+  appId: "1:921833394634:web:61144a0beed64854fdbf33"
+};
+initFirebase(HARDCODED_CONFIG);
+</script>
+</body>
+</html>
